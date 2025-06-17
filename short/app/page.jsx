@@ -2,45 +2,63 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserButton } from "@clerk/nextjs";
+import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
 	const [url, setUrl] = useState("");
-	const [isValid, setIsValid] = useState("");
+	const [isValid, setIsValid] = useState(false);
 	const handleChange = (e) => {
 		setUrl(e.target.value);
 	};
 	useEffect(() => {
 		if (url === "") {
-			setIsValid("");
+			setIsValid(false);
 			return;
 		}
-		const regex =
-			/^(https?:\/\/)?([\w-]+(\.[\w-]+)+)(:\d+)?(\/[\w-./?%&=]*)?$/;
-		setIsValid(regex.test(url));
+		if (url.length >= 4 && url.length <= 2048) {
+			try {
+				new URL(url);
+				setIsValid(true);
+			} catch (e) {
+				// prefix with https if it doesn't start with http or https
+				if (!url.startsWith("http://") && !url.startsWith("https://")) {
+					try {
+						new URL("https://" + url);
+						setIsValid(true);
+					} catch (e) {
+						setIsValid(false);
+					}
+				}
+			}
+		} else {
+			setIsValid(false);
+		}
 	}, [url]);
 	return (
-		<>
+		<div className="flex flex-col items-center justify-center min-h-screen w-full">
 			<h1 className="text-center text-4xl font-semibold mt-2">
-				Link Shortener
+				URL Shortener
 			</h1>
-			<div className="flex justify-center mt-4 max-w-md mx-auto">
+			<div className="flex flex-row justify-center mt-4 max-w-md mx-auto">
 				<Input
 					value={url}
 					onChange={handleChange}
 					placeholder="Enter URL"
-					className={
-						isValid === false
-							? "border-red-500"
-							: isValid === true
-							? "border-green-500"
-							: ""
-					}
+					className={"rounded-r-none"}
 				/>
+				<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 cursor-pointer">
+					<SlidersHorizontal />
+				</div>
 			</div>
 			<div className="flex justify-center mt-4">
-				<Button asChild>
+				<Button asChild disabled={!isValid} className={isValid ? "" : "opacity-50 cursor-not-allowed"} onClick={(e) => {
+					if (!isValid) {
+						e.preventDefault();
+					}
+				}}>
 					<Link
 						href={`/shorten?url=${encodeURIComponent(btoa(url))}`}
 					>
@@ -48,6 +66,8 @@ export default function Home() {
 					</Link>
 				</Button>
 			</div>
-		</>
+			<p className="text-muted-foreground text-sm mt-1">Usage is subject to our <Link href={"/tos"} className="underline">TOS</Link> and <Link href={"/privacy"} className="underline">Privacy</Link> policy.</p>
+			<p className="text-muted-foreground text-sm mt-1">Sign in to track analytics.</p>
+		</div>
 	);
 }
