@@ -2,10 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserButton } from "@clerk/nextjs";
 import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function Home() {
 	const [url, setUrl] = useState("");
@@ -49,9 +56,23 @@ export default function Home() {
 					placeholder="Enter URL"
 					className={"rounded-r-none"}
 				/>
-				<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 cursor-pointer">
-					<SlidersHorizontal />
-				</div>
+				<Dialog>
+					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 group cursor-pointer">
+						<DialogTrigger>
+
+							<SlidersHorizontal className="group-hover:cursor-pointer" />
+						</DialogTrigger>
+					</div>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Are you absolutely sure?</DialogTitle>
+							<DialogDescription>
+								This action cannot be undone. This will permanently delete your account
+								and remove your data from our servers.
+							</DialogDescription>
+						</DialogHeader>
+					</DialogContent>
+				</Dialog>
 			</div>
 			<div className="flex justify-center mt-4">
 				<Button asChild disabled={!isValid} className={isValid ? "" : "opacity-50 cursor-not-allowed"} onClick={(e) => {
