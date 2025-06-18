@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Home, Inbox, LoaderCircle, Search, Settings } from "lucide-react"
+import { Calendar, Home, Inbox, Link, LoaderCircle, Search, Settings } from "lucide-react"
 
 import {
     Sidebar,
@@ -22,29 +22,15 @@ import { useTheme } from "next-themes"
 const items = [
     {
         title: "Home",
-        url: "#",
+        url: "/",
         icon: Home,
     },
     {
-        title: "Inbox",
-        url: "#",
-        icon: Inbox,
+        title: "Your Links",
+        url: "/urls",
+        icon: Link,
     },
-    {
-        title: "Calendar",
-        url: "#",
-        icon: Calendar,
-    },
-    {
-        title: "Search",
-        url: "#",
-        icon: Search,
-    },
-    {
-        title: "Settings",
-        url: "#",
-        icon: Settings,
-    },
+
 ]
 
 export function AppSidebar() {
