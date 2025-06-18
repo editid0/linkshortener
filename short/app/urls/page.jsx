@@ -67,6 +67,18 @@ const data = [
         status: "failed",
         email: "carmella@example.com",
     },
+    {
+        id: "abcdefg",
+        amount: 123,
+        status: "success",
+        email: "cool@example.com",
+    },
+    {
+        id: "xyz1234",
+        amount: 456,
+        status: "processing",
+        email: "cool2@example.com",
+    }
 ]
 
 export const columns = [
@@ -134,7 +146,6 @@ export const columns = [
         enableHiding: false,
         cell: ({ row }) => {
             const payment = row.original
-
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
