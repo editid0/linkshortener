@@ -12,7 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 export default function Home() {
 	const [url, setUrl] = useState("");
@@ -59,27 +59,31 @@ export default function Home() {
 				<Dialog>
 					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 group cursor-pointer">
 						<DialogTrigger>
-
 							<SlidersHorizontal className="group-hover:cursor-pointer" />
 						</DialogTrigger>
 					</div>
 					<DialogContent>
 						<DialogHeader>
 							<DialogTitle>Are you absolutely sure?</DialogTitle>
-							<DialogDescription>
-								This action cannot be undone. This will permanently delete your account
-								and remove your data from our servers.
-							</DialogDescription>
 						</DialogHeader>
+						<div>
+							<p>Custom Slug</p>
+							<p>Random Slug</p>
+						</div>
 					</DialogContent>
 				</Dialog>
 			</div>
 			<div className="flex justify-center mt-4">
-				<Button asChild disabled={!isValid} className={isValid ? "" : "opacity-50 cursor-not-allowed"} onClick={(e) => {
-					if (!isValid) {
-						e.preventDefault();
-					}
-				}}>
+				<Button
+					asChild
+					disabled={!isValid}
+					className={isValid ? "" : "opacity-50 cursor-not-allowed"}
+					onClick={(e) => {
+						if (!isValid) {
+							e.preventDefault();
+						}
+					}}
+				>
 					<Link
 						href={`/shorten?url=${encodeURIComponent(btoa(url))}`}
 					>
@@ -87,8 +91,20 @@ export default function Home() {
 					</Link>
 				</Button>
 			</div>
-			<p className="text-muted-foreground text-sm mt-1">Usage is subject to our <Link href={"/tos"} className="underline">TOS</Link> and <Link href={"/privacy"} className="underline">Privacy</Link> policy.</p>
-			<p className="text-muted-foreground text-sm mt-1">Sign in to track analytics.</p>
+			<p className="text-muted-foreground text-sm mt-1">
+				Usage is subject to our{" "}
+				<Link href={"/tos"} className="underline">
+					TOS
+				</Link>{" "}
+				and{" "}
+				<Link href={"/privacy"} className="underline">
+					Privacy
+				</Link>{" "}
+				policy.
+			</p>
+			<p className="text-muted-foreground text-sm mt-1">
+				Sign in to track analytics.
+			</p>
 		</div>
 	);
 }
