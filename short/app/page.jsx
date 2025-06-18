@@ -59,7 +59,7 @@ export default function Home() {
 				<Dialog>
 					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 group cursor-pointer">
 						<DialogTrigger>
-							<SlidersHorizontal className="group-hover:cursor-pointer" />
+							<SlidersHorizontal className="group-hover:cursor-pointer" color="lightgray" />
 						</DialogTrigger>
 					</div>
 					<DialogContent>
@@ -69,6 +69,8 @@ export default function Home() {
 						<div>
 							<p>Custom Slug</p>
 							<p>Random Slug</p>
+							<p>Track analytics</p>
+							<p>Expiration</p>
 						</div>
 					</DialogContent>
 				</Dialog>
