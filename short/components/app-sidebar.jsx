@@ -56,7 +56,7 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter>
+            <SidebarFooter className={"dark:bg-neutral-800 bg-neutral-200"}>
                 <ClerkLoading>
                     <LoaderCircle className="animate-spin" />
                 </ClerkLoading>

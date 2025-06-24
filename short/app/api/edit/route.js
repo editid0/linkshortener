@@ -1,0 +1,113 @@
+import { auth } from '@clerk/nextjs/server'
+import moment from 'moment';
+import { Pool } from 'pg';
+
+function validateURL(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch (e) {
+        // if url doesn't start with http:// or https://, prefix it with https://
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            try {
+                new URL("https://" + url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        return false;
+    }
+}
+
+function validateSlug(slug) {
+    // alphanumeric characters, dashes, and underscores only, remove trailing dashes and underscores
+    const regex = /^[a-zA-Z0-9-_]+$/;
+    if (!regex.test(slug)) {
+        return false;
+    }
+    // Check if it is between 3 and 63 characters long
+    if (slug.length < 3 || slug.length > 63) {
+        return false;
+    }
+    // Remove trailing dashes and underscores
+    const trimmedSlug = slug.replace(/[-_]+$/, '');
+    // Check if it is still between 3 and 63 characters long after trimming
+    if (trimmedSlug.length < 3 || trimmedSlug.length > 63) {
+        return false;
+    }
+    return true;
+}
+function validateExpiry(expiry) {
+    // String in this format: '2025-06-25T15:30:00.000Z'
+    // Check if it meets the format
+    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    if (!regex.test(expiry)) {
+        return false;
+    }
+    // Check if it is a valid date, using momentjs
+    const date = new moment(expiry);
+    return date.isValid() && date.isAfter(moment());
+}
+function validatePlatformURLs(platform_urls) { }
+
+export async function POST(request) {
+    const { userId } = await auth();
+    // Get JSON data from the request body
+    const { url, slug, slug_random, expiry, platform_urls, id } = await request.json();
+    if (!validateURL(url)) {
+        return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400 });
+    }
+    if (slug && !validateSlug(slug)) {
+        return new Response(JSON.stringify({ error: "Invalid slug" }), { status: 400 });
+    }
+    if (expiry && !validateExpiry(expiry)) {
+        return new Response(JSON.stringify({ error: "Invalid expiry date" }), { status: 400 });
+    }
+    if (platform_urls && !validatePlatformURLs(platform_urls)) {
+        return new Response(JSON.stringify({ error: "Invalid platform URLs" }), { status: 400 });
+    }
+    // Connect to the database
+    const pool = new Pool({
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: 5432,
+    });
+    // Check that the user owns the id
+    const query = "SELECT * FROM urls WHERE user_id = $1 AND id = $2";
+    const values = [userId, id];
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+        return new Response(JSON.stringify({ error: "URL not found or you do not have permission to edit it." }), { status: 404 });
+    }
+    // Check if the slug is already taken
+    if (slug && !slug_random) {
+        const slugQuery = "SELECT * FROM urls WHERE slug = $1 AND id != $2";
+        const slugValues = [slug, id];
+        const slugResult = await pool.query(slugQuery, slugValues);
+        if (slugResult.rows.length > 0) {
+            return new Response(JSON.stringify({ error: "Slug already taken" }), { status: 400 });
+        }
+    }
+    // Remove leading and trailing whitespace, dashes, and underscores from the slug
+    const trimmedSlug = slug.replace(/^[-_\s]+|[-_\s]+$/g, '');
+    if (trimmedSlug.length < 3 || trimmedSlug.length > 63) {
+        return new Response(JSON.stringify({ error: "Slug must be between 3 and 63 characters long" }), { status: 400 });
+    }
+    // Update the URL in the database
+    const updateQuery = `
+        UPDATE urls 
+        SET url = $1, slug = $2, slug_random = $3, expiry = $4, platform_urls = $5, updated_at = NOW() 
+        WHERE id = $6 AND user_id = $7
+    `;
+    const updateValues = [url, trimmedSlug, slug_random, expiry, platform_urls, id, userId];
+    try {
+        await pool.query(updateQuery, updateValues);
+        return new Response(JSON.stringify({ success: true }), { status: 200 });
+    } catch (error) {
+        console.error("Error updating URL:", error);
+        return new Response(JSON.stringify({ error: "Failed to update URL" }), { status: 500 });
+    }
+}

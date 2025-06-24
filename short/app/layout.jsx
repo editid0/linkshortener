@@ -40,7 +40,7 @@ export default function RootLayout({ children }) {
 					>
 						<SidebarProvider>
 							<AppSidebar />
-							<div className="bg-neutral-900 h-fit p-1 mt-2 rounded-r-md border-y-2 border-neutral-800 border-r-2">
+							<div className="dark:bg-neutral-900 h-fit p-1 mt-2 rounded-r-md border-y-2 border-neutral-300 dark:border-neutral-800 border-r-2">
 								<SidebarTrigger />
 							</div>
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, SlidersHorizontal } from "lucide-react";
+import { CalendarIcon, SlidersHorizontal, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -27,6 +27,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import { useTheme } from "next-themes";
+import { SignedOut } from "@clerk/nextjs";
+import moment from "moment";
 
 export default function Home() {
 	const [url, setUrl] = useState("");
@@ -35,8 +38,20 @@ export default function Home() {
 	const [randomSlug, setRandomSlug] = useState(true);
 	const [analytics, setAnalytics] = useState(false);
 	const [expiration, setExpiration] = useState();
-	const [UTCTime, setUTCTime] = useState(new Date());
-	const [AmPm, setAmPm] = useState("am");
+	const [UTCTime, setUTCTime] = useState(new Date()); const [expiryTime, setExpiryTime] = useState("00:00");
+	const [expiryDate, setExpiryDate] = useState(""); const [resultDialogOpen, setResultDialogOpen] = useState(false);
+	const [shortenedUrl, setShortenedUrl] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [copied, setCopied] = useState(false);
+
+	useEffect(() => {
+		if (!expiration) return;
+		const utcDate = new Date(expiration);
+		// Store as a string, exactly as it is
+		const formattedDate = format(utcDate, "dd/MM/yyyy");
+		console.log("Formatted Date:", formattedDate);
+		setExpiryDate(formattedDate);
+	}, [expiration]);
 
 	// Set the UTC time to the current UTC time every second
 	useEffect(() => {
@@ -83,6 +98,11 @@ export default function Home() {
 			}
 		}
 	}, [expiration])
+	const { resolvedTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 	return (
 		<div className="flex flex-col items-center justify-center min-h-screen w-full">
 			<h1 className="text-center text-4xl font-semibold mt-2">
@@ -98,7 +118,7 @@ export default function Home() {
 				<Dialog>
 					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 group cursor-pointer">
 						<DialogTrigger>
-							<SlidersHorizontal className="group-hover:cursor-pointer" color="lightgray" />
+							<SlidersHorizontal className="group-hover:cursor-pointer" color={mounted && resolvedTheme == "dark" ? "lightgrey" : "black"} />
 						</DialogTrigger>
 					</div>
 					<DialogContent>
@@ -132,7 +152,7 @@ export default function Home() {
 								</div>
 							)}
 							<Separator className={"my-2"} />
-							<div className="flex flex-col gap-2 mt-2">
+							<div className="flex flex-col gap-2 mt-2 py-1">
 								<Label>
 									Track Analytics?
 								</Label>
@@ -159,40 +179,75 @@ export default function Home() {
 										</Button>
 									</PopoverTrigger>
 									<PopoverContent className="w-auto p-0">
-										<Calendar mode="single" selected={expiration} onSelect={setExpiration} />
+										<Calendar mode="single" selected={expiration} onSelect={(e) => {
+											if (e) {
+												setExpiration(e);
+											} else {
+												setExpiration(undefined);
+											}
+										}} />
 									</PopoverContent>
 								</Popover>
-								<Select defaultValue={AmPm} onValueChange={(value) => setAmPm(value)}>
-									<SelectTrigger className="w-[180px]">
-										<SelectValue placeholder="Select expiry time" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="am">12:00 AM</SelectItem>
-										<SelectItem value="pm">11:59 PM</SelectItem>
-									</SelectContent>
-								</Select>
+								<Input
+									type="time"
+									value={expiryTime}
+									onChange={(e) => {
+										setExpiryTime(e.target.value);
+									}
+									}
+									className="mt-2 w-fit"
+									placeholder="Select time"
+								/>
 							</div>
 						</div>
 					</DialogContent>
 				</Dialog>
 			</div>
-			<div className="flex justify-center mt-4">
-				<Button
-					asChild
-					disabled={!isValid}
-					className={isValid ? "" : "opacity-50 cursor-not-allowed"}
-					onClick={(e) => {
-						if (!isValid) {
-							e.preventDefault();
+			<div className="flex justify-center mt-4">				<Button
+				disabled={!isValid || isLoading}
+				className={isValid ? "" : "opacity-50 cursor-not-allowed"}
+				onClick={async (e) => {
+					e.preventDefault();
+					if (!isValid) return;
+
+					setIsLoading(true);
+					try {
+						// Make an API call to /api/shorten with the URL, slug, randomSlug, analytics, expiration, expiryDate, and expiryTime
+						var to_send = {
+							url: url,
+							slug: slug,
+							slug_random: randomSlug,
+							analytics: analytics,
+							expiration: expiration ? expiryDate : "",
+							expiryTime: expiryTime
 						}
-					}}
-				>
-					<Link
-						href={`/shorten?url=${encodeURIComponent(btoa(url))}?slug=${encodeURIComponent(btoa(slug))}&randomSlug=${randomSlug}&analytics=${analytics}&expiration=${expiration ? encodeURIComponent(expiration.toISOString()) : ""}&AmPm=${AmPm}`}
-					>
-						Shorten
-					</Link>
-				</Button>
+						// Make a post request to the API
+						const res = await fetch("/api/shorten", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify(to_send),
+						});
+
+						const data = await res.json();
+
+						if (data.error) {
+							alert(data.error);
+						} else {
+							setShortenedUrl(data.shortened_url);
+							setResultDialogOpen(true);
+						}
+					} catch (err) {
+						console.error(err);
+						alert("An error occurred while shortening the URL.");
+					} finally {
+						setIsLoading(false);
+					}
+				}}
+			>
+				{isLoading ? "Shortening..." : "Shorten"}
+			</Button>
 			</div>
 			<p className="text-muted-foreground text-sm mt-1">
 				Usage is subject to our{" "}
@@ -204,10 +259,63 @@ export default function Home() {
 					Privacy
 				</Link>{" "}
 				policy.
-			</p>
-			<p className="text-muted-foreground text-sm mt-1">
-				Sign in to track analytics.
-			</p>
+			</p>			<SignedOut>
+				<p className="text-muted-foreground text-sm mt-1">
+					Sign in to track analytics.
+				</p>
+			</SignedOut>
+
+			{/* Result Dialog */}
+			<Dialog open={resultDialogOpen} onOpenChange={(open) => {
+				setResultDialogOpen(open);
+				if (!open) {
+					setCopied(false);
+				}
+			}}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>URL Shortened Successfully!</DialogTitle>
+						<DialogDescription>
+							Your shortened URL is ready to use. You can copy it below.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="flex items-center space-x-2">
+						<div className="grid flex-1 gap-2">
+							<Input
+								id="shortened-url"
+								value={shortenedUrl}
+								readOnly
+								className="h-9"
+							/>
+						</div>						<Button
+							type="button"
+							size="sm"
+							className="px-3"
+							variant={copied ? "default" : "outline"}
+							onClick={async () => {
+								try {
+									await navigator.clipboard.writeText(shortenedUrl);
+									setCopied(true);
+									setTimeout(() => setCopied(false), 2000);
+								} catch (err) {
+									console.error('Failed to copy:', err);
+								}
+							}}
+						>
+							{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+							<span className="sr-only">{copied ? 'Copied!' : 'Copy'}</span>
+						</Button>
+					</div>
+					<div className="flex justify-center">
+						<Button
+							variant="outline"
+							onClick={() => setResultDialogOpen(false)}
+						>
+							Close
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
