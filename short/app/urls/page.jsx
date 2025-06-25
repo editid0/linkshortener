@@ -28,8 +28,6 @@ export default async function Page() {
     const query = "SELECT * FROM urls WHERE user_id = $1";
     const values = [user.id];
     const { rows } = await pool.query(query, values);
-    console.log("User:", user);
-    console.log("URLs:", rows);
     return (
         <>
             <div className="w-full mx-auto max-w-7xl px-2">

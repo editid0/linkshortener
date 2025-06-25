@@ -10,6 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDownIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 
 
 export default function EditForm({ expiry, slug, slug_random, url, platform_urls, id }) {
@@ -23,11 +32,13 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
     const initialDate = expiry instanceof Date ? new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate()) : null;
     const initialTime = expiry instanceof Date
         ? expiry.toISOString().slice(11, 16) // "HH:MM"
-        : "15:30";
+        : "";
 
     const [date, setDate] = useState(initialDate);
     const [expiration_timeC, setExpirationTime] = useState(initialTime);
     const [dateError, setDateError] = useState("");
+    const [showPlatformUrls, setShowPlatformUrls] = useState(platform_urls || false);
+    const [platformUrls, setPlatformUrls] = useState(platform_urls || {});
 
     const [UTCTime, setUTCTime] = useState(new Date());
     useEffect(() => {
@@ -35,6 +46,14 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
             setUTCTime(new Date(Date.now()));
         }, 1000);
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        platformUrls.default = urlC; // Ensure the default URL is always set to the current URL
+    }, [urlC]);
+
+    useEffect(() => {
+        platformUrls.default = urlC; // Ensure the default URL is always set to the current URL
     }, []);
 
     useEffect(() => {
@@ -84,13 +103,171 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
                 <div className={"border-2 rounded-md p-4 transition-all duration-300" + (urlC == url ? " border-accent" : " border-accent-foreground")}>
                     <h2 className="font-semibold">URL</h2>
                     <Separator className={"my-2"} />
-                    <Input
-                        type="text"
-                        placeholder="example.com"
-                        value={urlC}
-                        onChange={(e) => setUrl(e.target.value)}
-                        className="mb-4"
-                    />
+                    <div className="flex items-center gap-2 mb-4">
+                        <Switch
+                            checked={showPlatformUrls}
+                            onCheckedChange={(checked) => setShowPlatformUrls(checked)}
+                            className=""
+                        />
+                        <span className="text-sm">Show Platform URLs</span>
+                    </div>
+                    {!showPlatformUrls && (
+                        <Input
+                            type="text"
+                            placeholder="example.com"
+                            value={urlC}
+                            onChange={(e) => {
+                                setUrl(e.target.value)
+                                // Update the default/fallback URL in platform_urls
+                                setPlatformUrls({ ...platformUrls, default: e.target.value });
+                            }}
+                            className="mb-4"
+                        />
+                    )}
+                    {showPlatformUrls && (
+                        <div className="flex flex-col gap-2">
+                            <Table>
+                                <TableCaption>Platform information is obtained through a user agent, and can be spoofed, do not use this if platform accuracy is critical.</TableCaption>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="">Platform</TableHead>
+                                        <TableHead className="w-full">Destination</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>iOS</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.ios || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, ios: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Android</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.android || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, android: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Windows</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.windows || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, windows: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>MacOS</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.macos || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, macos: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow />
+                                    <TableRow>
+                                        <TableCell>Desktop</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.desktop || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, desktop: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Phone</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.phone || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, phone: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Tablet</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.tablet || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, tablet: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow />
+                                    <TableRow>
+                                        <TableCell>Chrome</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.chrome || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, chrome: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Firefox</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.firefox || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, firefox: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Safari</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={platformUrls.safari || ""}
+                                                onChange={(e) => setPlatformUrls({ ...platformUrls, safari: e.target.value })}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow />
+                                    <TableRow className={""}>
+                                        <TableCell className={""}>Default/Fallback (Required)</TableCell>
+                                        <TableCell className={"my-auto"}>
+                                            <Input
+                                                type="text"
+                                                placeholder="example.com"
+                                                value={urlC}
+                                                onChange={(e) => {
+                                                    setUrl(e.target.value);
+                                                    // Update the default/fallback URL in platform_urls
+                                                    setPlatformUrls({ ...platformUrls, default: e.target.value });
+                                                }}
+                                                className="mb-4"
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
                 </div>
                 <div className={"border-2 rounded-md p-4 transition-all duration-300" + (((slug_randomC == slug_random) && (slug == slugC)) ? " border-accent" : " border-accent-foreground")}>
                     <h2 className="font-semibold">Slug</h2>
@@ -176,25 +353,31 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
                         alert("Please fix the errors before saving.");
                         return;
                     }
-                    const formattedDate = date ? date.toISOString().split('T')[0] : null;
-                    const formattedTime = expiration_timeC ? expiration_timeC : "15:30"; // Default time if not set
-                    const [hours, minutes] = formattedTime.split(':').map(Number);
-                    const expirationDate = new Date(Date.UTC(
-                        date.getFullYear(),
-                        date.getMonth(),
-                        date.getDate(),
-                        hours,
-                        minutes
-                    ));
+                    if (date) {
+
+                        const formattedDate = date ? date.toISOString().split('T')[0] : null;
+                        const formattedTime = expiration_timeC ? expiration_timeC : "15:30"; // Default time if not set
+                        const [hours, minutes] = formattedTime.split(':').map(Number);
+                        const expirationDate = new Date(Date.UTC(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                            hours,
+                            minutes
+                        ));
+                    } else {
+                        var expirationDate = null; // No expiration date set
+                    }
+
 
                     // Here you would typically send the data to your server
                     const to_submit = {
                         url: urlC,
                         slug: slug_randomC ? null : slugC,
                         slug_random: slug_randomC,
-                        expiry: expirationDate.toISOString(),
-                        platform_urls: platform_urls, // Assuming this is handled elsewhere
-                        id: id // Include the ID for editing
+                        expiry: expirationDate ? expirationDate.toISOString() : null,
+                        platform_urls: showPlatformUrls ? platformUrls : {}, // Assuming this is handled elsewhere, as no checks are done here
+                        id: id // Include the ID for editing.
                     };
                     // Make a post request to /api/edit
                     fetch(`/api/edit`, {

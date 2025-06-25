@@ -4,15 +4,24 @@ import { Pool } from 'pg';
 
 function validateURL(url) {
     try {
-        new URL(url);
-        return true;
-    } catch (e) {
-        // if url doesn't start with http:// or https://, prefix it with https://
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        let parsed = new URL(url);
+        // Must have a dot in the hostname and a valid protocol
+        return (
+            /^(https?):$/.test(parsed.protocol) &&
+            parsed.hostname.includes('.') &&
+            !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) // avoid matching plain IPs if you want
+        );
+    } catch {
+        // Try prepending https:// and validating again
+        if (!/^https?:\/\//i.test(url)) {
             try {
-                new URL("https://" + url);
-                return true;
-            } catch (e) {
+                let parsed = new URL("https://" + url);
+                return (
+                    /^(https?):$/.test(parsed.protocol) &&
+                    parsed.hostname.includes('.') &&
+                    !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)
+                );
+            } catch {
                 return false;
             }
         }
@@ -39,6 +48,10 @@ function validateSlug(slug) {
     return true;
 }
 function validateExpiry(expiry) {
+    // Allow null, undefined, or empty string (no expiry)
+    if (!expiry || expiry === '') {
+        return true;
+    }
     // String in this format: '2025-06-25T15:30:00.000Z'
     // Check if it meets the format
     const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -49,7 +62,20 @@ function validateExpiry(expiry) {
     const date = new moment(expiry);
     return date.isValid() && date.isAfter(moment());
 }
-function validatePlatformURLs(platform_urls) { }
+function validatePlatformURLs(platform_urls) {
+    // Only the following keys are allowed, if there are any extra keys, return false
+    const allowedKeys = ['ios', 'macos', 'phone', 'chrome', 'safari', 'tablet', 'android', 'default', 'desktop', 'firefox', 'windows'];
+    for (const key in platform_urls) {
+        if (!allowedKeys.includes(key)) {
+            return false;
+        }
+        // Check if the value is a valid URL
+        if (!validateURL(platform_urls[key])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 export async function POST(request) {
     const { userId } = await auth();
@@ -60,8 +86,7 @@ export async function POST(request) {
     }
     if (slug && !validateSlug(slug)) {
         return new Response(JSON.stringify({ error: "Invalid slug" }), { status: 400 });
-    }
-    if (expiry && !validateExpiry(expiry)) {
+    } if (expiry !== null && expiry !== undefined && expiry !== '' && !validateExpiry(expiry)) {
         return new Response(JSON.stringify({ error: "Invalid expiry date" }), { status: 400 });
     }
     if (platform_urls && !validatePlatformURLs(platform_urls)) {

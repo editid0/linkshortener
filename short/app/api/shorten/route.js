@@ -4,15 +4,24 @@ import { Pool } from 'pg';
 
 function validateURL(url) {
     try {
-        new URL(url);
-        return true;
-    } catch (e) {
-        // if url doesn't start with http:// or https://, prefix it with https://
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        let parsed = new URL(url);
+        // Must have a dot in the hostname and a valid protocol
+        return (
+            /^(https?):$/.test(parsed.protocol) &&
+            parsed.hostname.includes('.') &&
+            !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) // avoid matching plain IPs if you want
+        );
+    } catch {
+        // Try prepending https:// and validating again
+        if (!/^https?:\/\//i.test(url)) {
             try {
-                new URL("https://" + url);
-                return true;
-            } catch (e) {
+                let parsed = new URL("https://" + url);
+                return (
+                    /^(https?):$/.test(parsed.protocol) &&
+                    parsed.hostname.includes('.') &&
+                    !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)
+                );
+            } catch {
                 return false;
             }
         }

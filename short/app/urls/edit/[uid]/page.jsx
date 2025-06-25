@@ -30,6 +30,9 @@ export default async function EditPage({ params }) {
     const url = urlData.url;
     const platform_urls = urlData.platform_urls;
     const id = urlData.id;
+    if (platform_urls) {
+        console.log("Platform URLs:", platform_urls);
+    }
     return (
         <>
             <EditForm expiry={expiry} slug={slug} slug_random={slug_random} url={url} platform_urls={platform_urls} id={id} />
