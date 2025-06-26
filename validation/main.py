@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os, psycopg2, re
+import validators
 
 env_path = os.path.join(os.path.dirname(__file__), '../short/.env')
 load_dotenv(dotenv_path=env_path)
@@ -32,51 +33,12 @@ def main():
         print("Failed to connect to the database.")
 
 def validate_url(url):
-    if re.match(r'^\w+$', url, re.IGNORECASE):
-        # Only contains alphanumeric characters
-        # Invalid
-        return False
-    elif re.match(r'^htts', url, re.IGNORECASE):
-        # Starts with 'htts' instead of 'https'
-        # Invalid
-        return False
-    elif re.match(r'^htps', url, re.IGNORECASE):
-        # Starts with 'htps' instead of 'https'
-        # Invalid
-        return False
-    elif re.match(r'^\W+', url, re.IGNORECASE):
-        # Starts with : or /
-        # Invalid
-        return False
-    elif re.match(r'^http(s)?(//|:/|:|/)\w+', url, re.IGNORECASE):
-        # Starts with Only has // or :/ or : or /
-        # Invalid
-        return False
-    elif re.match(r'^http(s)?://\w+$', url, re.IGNORECASE):
-        # Starts with http:// or https:// and only has alphanumeric characters
-        # Invalid
-        return False
-    elif re.match(r'^http(s?)[:/]*$', url, re.IGNORECASE):
-        # Starts with http:// or https:// and has no other characters
-        # Invalid
-        return False
-    elif re.match(r'^(http(s)?://)?(\w+)(\.\b\w+)*(\.)[/?&#]', url, re.IGNORECASE):
-        # Trailing dot in URL
-        # Invalid
-        return False
-    elif re.match(r'^(?!http)\w+://', url, re.IGNORECASE):
-        # Invalid protocol (not http or https)
-        # Invalid
-        return False
-    elif re.match(r'^(http(s)?://)?(127\.\d+\.\d+\.\d+)|(169\.254\.\d+\.\d+)|(10\.\d+\.\d+\.\d+)|(172\.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31)\.\d+\.\d+)|(192\.168\.\d+\.\d+)', url, re.IGNORECASE):
-        # Private IP address
-        # Invalid
-        return False
-    elif re.match(r'(^::1)|(^https?://\[::1\])|(^fe80::1)|(^https?://\[fe80::1\])|(^fd00::1)|(^https?://\[fd00::1\])', url, re.IGNORECASE):
-        # IPv6 loopback address
-        # Invalid
-        return False
-    return True  # If none of the above conditions are met, the URL is valid
+    status = validators.url(url,consider_tld=True,private=False)
+    if status == True:
+        shortener_regex = r'^https?:\/\/(bit\.ly|tinyurl\.com|shorturl\.at|rb\.gy|rebrand\.ly|dub\.sh|short-link\.me|www\.naturl\.link)\/\w+'
+        if re.match(shortener_regex, url):
+            return False
+    return status == True
 
 def validate_rows(conn):
     try:
@@ -93,12 +55,72 @@ def validate_rows(conn):
                 slug = row[3]
                 is_random = row[4]
                 platform_urls = row[7]
+                marked_invalid = False # If this is set to true, something was invalid, otherwise at the end of the loop, the row will be set to valid.
                 # print(f"Validating URL: {url}, Slug: {slug}, Is Random: {is_random}, Platform URLs: {platform_urls}")
-                if validate_url(url):
-                    # print(f"URL {url} is valid.")
-                    ...
-                else:
-                    print(f"URL {url} is invalid.")
+                valid = validate_url(url)
+                if not valid:
+                    # Try prefix with https:// if it doesn't start with http or https
+                    if not re.match(r'^(http://|https://)', url):
+                        url = 'https://' + url
+                        valid = validate_url(url)
+                        if valid:
+                            # Update the URL in the database to include the prefix
+                            cursor.execute("UPDATE urls SET url = %s WHERE id = %s", (url, uid))
+                    else:
+                        # URL is invalid, update the status to 'invalid'
+                        cursor.execute("UPDATE urls SET valid = 'invalid', valid_msg = 'Invalid URL' WHERE id = %s", (uid,))
+                        marked_invalid = True
+                if platform_urls:
+                    ios = platform_urls.get('ios')
+                    macos = platform_urls.get('macos')
+                    android = platform_urls.get('android')
+                    windows = platform_urls.get('windows')
+                    phone = platform_urls.get('phone')
+                    tablet = platform_urls.get('tablet')
+                    desktop = platform_urls.get('desktop')
+                    chrome = platform_urls.get('chrome')
+                    safari = platform_urls.get('safari')
+                    firefox = platform_urls.get('firefox')
+                    default = platform_urls.get('default')
+                    platform_fields = [
+                        ('ios', ios, 'iOS'),
+                        ('macos', macos, 'macOS'),
+                        ('android', android, 'Android'),
+                        ('windows', windows, 'Windows'),
+                        ('phone', phone, 'Phone'),
+                        ('tablet', tablet, 'Tablet'),
+                        ('desktop', desktop, 'Desktop'),
+                        ('chrome', chrome, 'Chrome'),
+                        ('safari', safari, 'Safari'),
+                        ('firefox', firefox, 'Firefox'),
+                        ('default', default, 'Default'),
+                    ]
+                    invalid_msgs = []
+                    for field, value, label in platform_fields:
+                        if value and not validate_url(value):
+                            # Try prefixing with https:// if not present
+                            if not re.match(r'^(http://|https://)', value):
+                                new_value = 'https://' + value
+                                if validate_url(new_value):
+                                    # Update the platform url in the database
+                                    cursor.execute(
+                                        f"UPDATE urls SET platform_urls = jsonb_set(platform_urls, '{{{field}}}', %s) WHERE id = %s",
+                                        ('"%s"' % new_value, uid)
+                                    )
+                                    continue
+                            # Collect invalid messages
+                            invalid_msgs.append(f'Invalid {label} URL')
+                    if invalid_msgs:
+                        # Set status to invalid and combine all messages
+                        cursor.execute(
+                            "UPDATE urls SET valid = 'invalid', valid_msg = %s WHERE id = %s",
+                            (', '.join(invalid_msgs), uid)
+                        )
+                        marked_invalid = True
+                if not marked_invalid:
+                    # If no invalid URLs were found, set the status to valid
+                    cursor.execute("UPDATE urls SET valid = 'valid' WHERE id = %s", (uid,))
+        conn.commit()
         cursor.close()
     except Exception as e:
         print(f"Error during validation: {e}")

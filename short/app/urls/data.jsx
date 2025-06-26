@@ -174,7 +174,7 @@ export default function Data({ data }) {
                     {row.original.valid === "valid"
                         ? "This URL is valid and can be accessed." :
                         row.original.valid === "invalid"
-                            ? "This URL is invalid and cannot be accessed."
+                            ? `This URL is invalid and cannot be accessed: ${row.original.valid_msg}`
                             : "This URL status is unknown."}
                 </TooltipContent>
             </Tooltip>

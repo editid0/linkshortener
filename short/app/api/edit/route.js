@@ -122,7 +122,7 @@ export async function POST(request) {
     // Update the URL in the database
     const updateQuery = `
         UPDATE urls 
-        SET url = $1, slug = $2, slug_random = $3, expiry = $4, platform_urls = $5, updated_at = NOW() 
+        SET url = $1, slug = $2, slug_random = $3, expiry = $4, platform_urls = $5, updated_at = NOW(), valid = 'unknown', valid_msg = '' 
         WHERE id = $6 AND user_id = $7
     `;
     const updateValues = [url, trimmedSlug, slug_random, expiry, platform_urls, id, userId];

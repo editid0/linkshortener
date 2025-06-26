@@ -194,8 +194,8 @@ export async function POST(request) {
     // valid TEXT default 'unknown' NOT NULL
     // );
     const query = `
-        INSERT INTO urls (url, user_id, slug, slug_random, expiry, analytics_key, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, gen_random_uuid(), NOW(), NOW())
+        INSERT INTO urls (url, user_id, slug, slug_random, expiry, analytics_key, created_at, updated_at, valid)
+        VALUES ($1, $2, $3, $4, $5, gen_random_uuid(), NOW(), NOW(), 'unknown')
         RETURNING id
     `;
     const values = [url, userId, finalSlug || randomSlug, slug_random, expiry];

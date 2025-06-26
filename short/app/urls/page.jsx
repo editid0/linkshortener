@@ -22,7 +22,8 @@ export default async function Page() {
     // platform_urls JSONB,
     // created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     // updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    // valid TEXT default 'unknown' NOT NULL
+    // valid TEXT default 'unknown' NOT NULL,
+    // valid_msg TEXT not null default '';
     // );
     // Select data from database
     const query = "SELECT * FROM urls WHERE user_id = $1";
