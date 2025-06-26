@@ -116,9 +116,9 @@ export default function Home() {
 					className={"rounded-r-none"}
 				/>
 				<Dialog>
-					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2 group cursor-pointer">
+					<div className="flex items-center justify-center rounded-md selection:bg-primary dark:bg-input/30 bg-transparent rounded-l-none border border-input px-2">
 						<DialogTrigger>
-							<SlidersHorizontal className="group-hover:cursor-pointer" color={mounted && resolvedTheme == "dark" ? "lightgrey" : "black"} />
+							<SlidersHorizontal className="cursor-pointer" color={mounted && resolvedTheme == "dark" ? "lightgrey" : "black"} />
 						</DialogTrigger>
 					</div>
 					<DialogContent>

@@ -5,11 +5,10 @@ import { Pool } from 'pg';
 function validateURL(url) {
     try {
         let parsed = new URL(url);
-        // Must have a dot in the hostname and a valid protocol
+        // Must have a valid protocol (http or https) and a hostname
         return (
             /^(https?):$/.test(parsed.protocol) &&
-            parsed.hostname.includes('.') &&
-            !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname) // avoid matching plain IPs if you want
+            !!parsed.hostname
         );
     } catch {
         // Try prepending https:// and validating again
@@ -18,8 +17,7 @@ function validateURL(url) {
                 let parsed = new URL("https://" + url);
                 return (
                     /^(https?):$/.test(parsed.protocol) &&
-                    parsed.hostname.includes('.') &&
-                    !/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)
+                    !!parsed.hostname
                 );
             } catch {
                 return false;
