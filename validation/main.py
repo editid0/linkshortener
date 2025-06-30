@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import os, psycopg2, re
+import os, psycopg2, re, urllib, requests
 import validators
 
 env_path = os.path.join(os.path.dirname(__file__), '../short/.env')
@@ -9,6 +9,7 @@ DB_NAME = os.getenv('DB_NAME')
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_HOST = os.getenv('DB_HOST')
+IPQS_API_KEY = os.getenv('IPQS_API_KEY')
 
 def connect_to_db():
     try:
@@ -35,10 +36,30 @@ def main():
 def validate_url(url):
     status = validators.url(url,consider_tld=True,private=False)
     if status == True:
-        shortener_regex = r'^https?:\/\/(bit\.ly|tinyurl\.com|shorturl\.at|rb\.gy|rebrand\.ly|dub\.sh|short-link\.me|www\.naturl\.link)\/\w+'
+        shortener_regex = r'^https?:\/\/(bit\.ly|tinyurl\.com|shorturl\.at|rb\.gy|rebrand\.ly|dub\.sh|short-link\.me|www\.naturl\.link)(\/\w+)?$'
         if re.match(shortener_regex, url):
             return False
     return status == True
+
+def is_virus(url):
+    encoded_url = urllib.parse.quote(url, safe='')
+    api_url = f"https://www.ipqualityscore.com/api/json/url/{IPQS_API_KEY}/{encoded_url}"
+    # use requests to check the URL
+    try:
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('unsafe'):
+                return True
+            else:
+                return False
+        else:
+            print(f"Error checking URL: {response.status_code} - {response.text}")
+            return False
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+        # If the request fails, we assume the URL is not a virus
+        return False
 
 def validate_rows(conn):
     try:
@@ -66,9 +87,18 @@ def validate_rows(conn):
                         if valid:
                             # Update the URL in the database to include the prefix
                             cursor.execute("UPDATE urls SET url = %s WHERE id = %s", (url, uid))
+                            # Valid URLs, check for virus scanning
+                            if is_virus(url):
+                                cursor.execute("UPDATE urls SET valid = 'blocked', valid_msg = 'Virus detected' WHERE id = %s", (uid,))
+                                marked_invalid = True
                     else:
                         # URL is invalid, update the status to 'invalid'
                         cursor.execute("UPDATE urls SET valid = 'invalid', valid_msg = 'Invalid URL' WHERE id = %s", (uid,))
+                        marked_invalid = True
+                else:
+                    # Valid URLs, check for virus scanning
+                    if is_virus(url):
+                        cursor.execute("UPDATE urls SET valid = 'blocked', valid_msg = 'Virus detected' WHERE id = %s", (uid,))
                         marked_invalid = True
                 if platform_urls:
                     ios = platform_urls.get('ios')

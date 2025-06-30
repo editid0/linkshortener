@@ -60,17 +60,36 @@ function validateExpiry(expiry) {
     const date = new moment(expiry);
     return date.isValid() && date.isAfter(moment());
 }
+
+function isEmptyObject(obj) {
+    return Object.keys(obj).length === 0 && obj.constructor === Object;
+}
+
 function validatePlatformURLs(platform_urls) {
+    if (isEmptyObject(platform_urls)) {
+        return true; // Empty object is valid
+    }
     // Only the following keys are allowed, if there are any extra keys, return false
     const allowedKeys = ['ios', 'macos', 'phone', 'chrome', 'safari', 'tablet', 'android', 'default', 'desktop', 'firefox', 'windows'];
     for (const key in platform_urls) {
         if (!allowedKeys.includes(key)) {
             return false;
         }
+        // If value is null, undefined, or empty string, it is valid
+        if (!platform_urls[key] || platform_urls[key] === '') {
+            continue;
+        }
         // Check if the value is a valid URL
         if (!validateURL(platform_urls[key])) {
             return false;
         }
+    }
+    // Make sure that default is present and is a valid URL
+    if (!platform_urls.default || platform_urls.default === '') {
+        return false;
+    }
+    if (!validateURL(platform_urls.default)) {
+        return false;
     }
     return true;
 }
@@ -79,6 +98,7 @@ export async function POST(request) {
     const { userId } = await auth();
     // Get JSON data from the request body
     const { url, slug, slug_random, expiry, platform_urls, id } = await request.json();
+    console.log(platform_urls, platform_urls != {}, validatePlatformURLs(platform_urls));
     if (!validateURL(url)) {
         return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400 });
     }
@@ -87,7 +107,7 @@ export async function POST(request) {
     } if (expiry !== null && expiry !== undefined && expiry !== '' && !validateExpiry(expiry)) {
         return new Response(JSON.stringify({ error: "Invalid expiry date" }), { status: 400 });
     }
-    if (platform_urls && !validatePlatformURLs(platform_urls)) {
+    if ((platform_urls || platform_urls != {}) && !validatePlatformURLs(platform_urls)) {
         return new Response(JSON.stringify({ error: "Invalid platform URLs" }), { status: 400 });
     }
     // Connect to the database

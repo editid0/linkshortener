@@ -165,7 +165,9 @@ export default function Data({ data }) {
                             ? "text-green-500"
                             : row.original.valid === "invalid"
                                 ? "text-red-500"
-                                : "text-yellow-500"
+                                : row.original.valid === "blocked"
+                                    ? "bg-red-500 text-white p-1 rounded-md"
+                                    : "text-yellow-500"
                             }`}
                     >
                         {row.original.valid}
@@ -175,7 +177,9 @@ export default function Data({ data }) {
                         ? "This URL is valid and can be accessed." :
                         row.original.valid === "invalid"
                             ? `This URL is invalid and cannot be accessed: ${row.original.valid_msg}`
-                            : "This URL status is unknown."}
+                            : row.original.valid === "blocked"
+                                ? "This URL has failed our virus testing."
+                                : "This URL status is unknown."}
                 </TooltipContent>
             </Tooltip>
         ),
