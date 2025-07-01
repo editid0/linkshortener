@@ -20,6 +20,17 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
+function isEmptyObject(obj) {
+    return Object.keys(obj).length === 0 && obj.constructor === Object;
+}
+
+function shouldShowPlatformUrls(platform_urls) {
+    // If platform_urls is null, undefined, or an empty object, return false
+    if (!platform_urls || isEmptyObject(platform_urls)) {
+        return false;
+    }
+    return Object.keys(platform_urls).length > 0;
+}
 
 export default function EditForm({ expiry, slug, slug_random, url, platform_urls, id }) {
     // expiry is now a Date object (or null/undefined)
@@ -37,7 +48,7 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
     const [date, setDate] = useState(initialDate);
     const [expiration_timeC, setExpirationTime] = useState(initialTime);
     const [dateError, setDateError] = useState("");
-    const [showPlatformUrls, setShowPlatformUrls] = useState(platform_urls || false);
+    const [showPlatformUrls, setShowPlatformUrls] = useState(shouldShowPlatformUrls(platform_urls));
     const [platformUrls, setPlatformUrls] = useState(platform_urls || {});
 
     const [UTCTime, setUTCTime] = useState(new Date());
@@ -97,7 +108,7 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
     }, [slugC])
 
     return (
-        <>
+        <div className="flex flex-col items-center justify-center min-h-screen w-full max-w-2xl mx-auto p-6">
             <div className="flex flex-col gap-4 mx-auto max-w-xl w-full dark:bg-neutral-900/50 p-4 h-fit my-2 rounded-md border-2">
                 <h1 className="text-center font-bold text-2xl">Edit URL</h1>
                 <div className={"border-2 rounded-md p-4 transition-all duration-300" + (urlC == url ? " border-accent" : " border-accent-foreground")}>
@@ -400,6 +411,42 @@ export default function EditForm({ expiry, slug, slug_random, url, platform_urls
                     Save Changes
                 </Button>
             </div>
-        </>
+            <div className="flex flex-col gap-4 mx-auto max-w-xl w-full dark:bg-neutral-900/50 p-4 h-fit my-2 rounded-md border-2 border-destructive">
+                <h2 className="font-semibold text-destructive">Danger Zone</h2>
+                <Separator className="my-2" />
+                <p className="text-sm text-muted-foreground">
+                    Deleting this URL will permanently remove it and break any links using it.
+                    This action cannot be undone.
+                </p>
+                <Button
+                    variant="destructive"
+                    onClick={() => {
+                        if (confirm("Are you sure you want to delete this URL? This action cannot be undone.")) {
+                            fetch('/api/delete', {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ id }),
+                            })
+                                .then(response => {
+                                    if (response.ok) {
+                                        window.location.href = '/urls';
+                                    } else {
+                                        response.json().then(data => {
+                                            alert(`Error: ${data.error || "Failed to delete URL"}`);
+                                        });
+                                    }
+                                })
+                                .catch(error => {
+                                    alert(`Error: ${error.message}`);
+                                });
+                        }
+                    }}
+                >
+                    Delete URL
+                </Button>
+            </div>
+        </div>
     )
 }

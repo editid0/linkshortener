@@ -86,7 +86,7 @@ export default async function Page({ params }) {
             url = platform_urls["firefox"];
             is_url_final = true;
         }
-        if (platform_urls["safari"] && browser === "safari" && !is_url_final) {
+        if (platform_urls["safari"] && (browser === "safari" || browser === "mobile safari") && !is_url_final) {
             url = platform_urls["safari"];
             is_url_final = true;
         }

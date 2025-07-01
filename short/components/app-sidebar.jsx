@@ -14,7 +14,7 @@ import {
     SidebarMenuItem,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs"
+import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, SignOutButton, useClerk, UserButton } from "@clerk/nextjs"
 import { Button } from "./ui/button"
 import { useTheme } from "next-themes"
 
@@ -34,7 +34,8 @@ const items = [
 ]
 
 export function AppSidebar() {
-    const { resolvedTheme } = useTheme()
+    const { resolvedTheme } = useTheme();
+    const { openUserProfile } = useClerk();
     return (
         <Sidebar>
             <SidebarContent>
@@ -56,7 +57,8 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter className={"dark:bg-neutral-800 bg-neutral-200"}>
+            {/* <SidebarFooter className={"dark:bg-neutral-800 bg-neutral-200"}> */}
+            <SidebarFooter className={"bg-gradient-to-b from-neutral-100 to-neutral-200 to-20% pt-8 dark:from-neutral-900 dark:to-neutral-800"}>
                 <ClerkLoading>
                     <LoaderCircle className="animate-spin" />
                 </ClerkLoading>
@@ -69,7 +71,7 @@ export function AppSidebar() {
                         </Button>
                     </SignedOut>
                     <SignedIn>
-                        <UserButton
+                        {/* <UserButton
                             appearance={{
                                 elements: {
                                     userButtonBox: {
@@ -81,7 +83,22 @@ export function AppSidebar() {
                                 },
                             }}
                             showName={true}
-                        />
+                        /> */}
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => openUserProfile()}
+                        >
+                            Manage Account
+                        </Button>
+                        <SignOutButton>
+                            <Button
+                                variant={"destructive"}
+                                className="w-full"
+                            >
+                                Sign Out
+                            </Button>
+                        </SignOutButton>
                     </SignedIn>
                 </ClerkLoaded>
             </SidebarFooter>

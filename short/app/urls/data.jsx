@@ -276,6 +276,7 @@ export default function Data({ data }) {
                         <option value="valid">Valid</option>
                         <option value="invalid">Invalid</option>
                         <option value="unknown">Unknown</option>
+                        <option value="blocked">Blocked</option>
                     </select>
 
                     {/* Clear Filters Button */}
