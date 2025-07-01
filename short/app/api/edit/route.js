@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import moment from 'moment';
 import { Pool } from 'pg';
+import crypto from 'crypto';
 
 function validateURL(url) {
     try {
@@ -98,7 +99,6 @@ export async function POST(request) {
     const { userId } = await auth();
     // Get JSON data from the request body
     const { url, slug, slug_random, expiry, platform_urls, id } = await request.json();
-    console.log(platform_urls, platform_urls != {}, validatePlatformURLs(platform_urls));
     if (!validateURL(url)) {
         return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400 });
     }
@@ -134,8 +134,24 @@ export async function POST(request) {
             return new Response(JSON.stringify({ error: "Slug already taken" }), { status: 400 });
         }
     }
+    var slugValue = slug;
+    // If slug_random is true, generate a random slug
+    if (slug_random) {
+        // Generate a random slug of 5-8 characters, using alphanumeric characters, dashes, and underscores, use crypto to generate a random string
+        slugValue = crypto.randomBytes(5).toString('base64url').slice(0, 8);
+        // Ensure the random slug is valid
+        if (!validateSlug(slugValue)) {
+            return new Response(JSON.stringify({ error: "Failed to generate a valid random slug" }), { status: 500 });
+        }
+        // Set slug_random to false in the database
+        await pool.query(`
+            UPDATE urls
+            SET slug_random = false 
+            WHERE id = $1 AND user_id = $2
+        `, [id, userId]);
+    }
     // Remove leading and trailing whitespace, dashes, and underscores from the slug
-    const trimmedSlug = slug.replace(/^[-_\s]+|[-_\s]+$/g, '');
+    const trimmedSlug = slugValue.replace(/^[-_\s]+|[-_\s]+$/g, '');
     if (trimmedSlug.length < 3 || trimmedSlug.length > 63) {
         return new Response(JSON.stringify({ error: "Slug must be between 3 and 63 characters long" }), { status: 400 });
     }
