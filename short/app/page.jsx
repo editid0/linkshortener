@@ -203,51 +203,52 @@ export default function Home() {
 					</DialogContent>
 				</Dialog>
 			</div>
-			<div className="flex justify-center mt-4">				<Button
-				disabled={!isValid || isLoading}
-				className={isValid ? "" : "opacity-50 cursor-not-allowed"}
-				onClick={async (e) => {
-					e.preventDefault();
-					if (!isValid) return;
+			<div className="flex justify-center mt-4">
+				<Button
+					disabled={!isValid || isLoading}
+					className={isValid ? "" : "opacity-50 cursor-not-allowed"}
+					onClick={async (e) => {
+						e.preventDefault();
+						if (!isValid) return;
 
-					setIsLoading(true);
-					try {
-						// Make an API call to /api/shorten with the URL, slug, randomSlug, analytics, expiration, expiryDate, and expiryTime
-						var to_send = {
-							url: url,
-							slug: slug,
-							slug_random: randomSlug,
-							analytics: analytics,
-							expiration: expiration ? expiryDate : "",
-							expiryTime: expiryTime
+						setIsLoading(true);
+						try {
+							// Make an API call to /api/shorten with the URL, slug, randomSlug, analytics, expiration, expiryDate, and expiryTime
+							var to_send = {
+								url: url,
+								slug: slug,
+								slug_random: randomSlug,
+								analytics: analytics,
+								expiration: expiration ? expiryDate : "",
+								expiryTime: expiryTime
+							}
+							// Make a post request to the API
+							const res = await fetch("/api/shorten", {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify(to_send),
+							});
+
+							const data = await res.json();
+
+							if (data.error) {
+								alert(data.error);
+							} else {
+								setShortenedUrl(data.shortened_url);
+								setResultDialogOpen(true);
+							}
+						} catch (err) {
+							console.error(err);
+							alert("An error occurred while shortening the URL.");
+						} finally {
+							setIsLoading(false);
 						}
-						// Make a post request to the API
-						const res = await fetch("/api/shorten", {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify(to_send),
-						});
-
-						const data = await res.json();
-
-						if (data.error) {
-							alert(data.error);
-						} else {
-							setShortenedUrl(data.shortened_url);
-							setResultDialogOpen(true);
-						}
-					} catch (err) {
-						console.error(err);
-						alert("An error occurred while shortening the URL.");
-					} finally {
-						setIsLoading(false);
-					}
-				}}
-			>
-				{isLoading ? "Shortening..." : "Shorten"}
-			</Button>
+					}}
+				>
+					{isLoading ? "Shortening..." : "Shorten"}
+				</Button>
 			</div>
 			<p className="text-muted-foreground text-sm mt-1">
 				Usage is subject to our{" "}
@@ -261,7 +262,7 @@ export default function Home() {
 				policy.
 			</p>			<SignedOut>
 				<p className="text-muted-foreground text-sm mt-1">
-					Sign in to track analytics.
+					Sign in to save and edit your shortened URLs.
 				</p>
 			</SignedOut>
 
