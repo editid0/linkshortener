@@ -10,8 +10,9 @@ DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_HOST = os.getenv('DB_HOST')
 IPQS_API_KEY = os.getenv('IPQS_API_KEY')
-r = valkey.Valkey(host=os.getenv('VALKEY_IP', 'localhost'), port=int(os.getenv('VALKEY_PORT', 6379)), db="0")
-pubsub = r.pubsub()
+r = valkey.Valkey(host=os.getenv('VALKEY_IP', 'localhost'), port=6379)
+p = r.pubsub()
+p.subscribe('update')
 
 def connect_to_db():
     try:
@@ -156,12 +157,15 @@ def validate_rows(conn):
         print(f"Error during validation: {e}")
 
 def run_validation():
-    pubsub.subscribe('update')
-    print(pubsub.get_message(ignore_subscribe_messages=True))
-    pubsub.unsubscribe('update')
+    msg = p.get_message(ignore_subscribe_messages=True, timeout=1)
+    if msg:
+        channel = msg['channel'].decode()
+        data = msg['data']
+        if channel == 'update':
+            main()
 
 if __name__ == "__main__":
-    schedule.every(10).seconds.do(run_validation)
+    schedule.every(1).seconds.do(run_validation)
     while True:
         schedule.run_pending()
         time.sleep(1)
