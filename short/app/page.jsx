@@ -152,7 +152,7 @@ export default function Home() {
 								</div>
 							)}
 							<Separator className={"my-2"} />
-							<div className="flex flex-col gap-2 mt-2 py-1">
+							{/* <div className="flex flex-col gap-2 mt-2 py-1">
 								<Label>
 									Track Analytics?
 								</Label>
@@ -161,7 +161,7 @@ export default function Home() {
 									onCheckedChange={(checked) => setAnalytics(checked)}
 								/>
 							</div>
-							<Separator className={"my-2"} />
+							<Separator className={"my-2"} /> */}
 							<div className="flex flex-col gap-2 mt-2">
 								<Label>
 									Expiration Date
