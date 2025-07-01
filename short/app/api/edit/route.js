@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import moment from 'moment';
 import { Pool } from 'pg';
 import crypto from 'crypto';
+const Valkey = require("iovalkey");
 
 function validateURL(url) {
     try {
@@ -99,6 +100,11 @@ export async function POST(request) {
     const { userId } = await auth();
     // Get JSON data from the request body
     const { url, slug, slug_random, expiry, platform_urls, id } = await request.json();
+    const valkey = new Valkey({
+        host: process.env.VALKEY_IP || "localhost",
+        port: 6379,
+        db: "0",
+    });
     if (!validateURL(url)) {
         return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400 });
     }
@@ -135,8 +141,9 @@ export async function POST(request) {
         }
     }
     var slugValue = slug;
+    var is_slug_random = slug_random;
     // If slug_random is true, generate a random slug
-    if (slug_random) {
+    if (is_slug_random) {
         // Generate a random slug of 5-8 characters, using alphanumeric characters, dashes, and underscores, use crypto to generate a random string
         slugValue = crypto.randomBytes(5).toString('base64url').slice(0, 8);
         // Ensure the random slug is valid
@@ -149,6 +156,7 @@ export async function POST(request) {
             SET slug_random = false 
             WHERE id = $1 AND user_id = $2
         `, [id, userId]);
+        is_slug_random = false; // Update the variable to reflect the change
     }
     // Remove leading and trailing whitespace, dashes, and underscores from the slug
     const trimmedSlug = slugValue.replace(/^[-_\s]+|[-_\s]+$/g, '');
@@ -161,9 +169,14 @@ export async function POST(request) {
         SET url = $1, slug = $2, slug_random = $3, expiry = $4, platform_urls = $5, updated_at = NOW(), valid = 'unknown', valid_msg = '' 
         WHERE id = $6 AND user_id = $7
     `;
-    const updateValues = [url, trimmedSlug, slug_random, expiry, platform_urls, id, userId];
+    const updateValues = [url, trimmedSlug, is_slug_random, expiry, platform_urls, id, userId];
     try {
         await pool.query(updateQuery, updateValues);
+        valkey.publish("update", JSON.stringify({
+            type: "edit",
+            userId: userId,
+            id: id,
+        }));
         return new Response(JSON.stringify({ success: true }), { status: 200 });
     } catch (error) {
         console.error("Error updating URL:", error);

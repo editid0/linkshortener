@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import os, psycopg2, re, urllib, requests
+import os, psycopg2, re, urllib, requests, valkey, schedule, time
 import validators
 
 env_path = os.path.join(os.path.dirname(__file__), '../short/.env')
@@ -10,6 +10,8 @@ DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_HOST = os.getenv('DB_HOST')
 IPQS_API_KEY = os.getenv('IPQS_API_KEY')
+r = valkey.Valkey(host=os.getenv('VALKEY_IP', 'localhost'), port=int(os.getenv('VALKEY_PORT', 6379)), db="0")
+pubsub = r.pubsub()
 
 def connect_to_db():
     try:
@@ -73,8 +75,6 @@ def validate_rows(conn):
             for row in rows:
                 uid = row[0]
                 url = row[1]
-                slug = row[3]
-                is_random = row[4]
                 platform_urls = row[7]
                 marked_invalid = False # If this is set to true, something was invalid, otherwise at the end of the loop, the row will be set to valid.
                 # print(f"Validating URL: {url}, Slug: {slug}, Is Random: {is_random}, Platform URLs: {platform_urls}")
@@ -155,5 +155,13 @@ def validate_rows(conn):
     except Exception as e:
         print(f"Error during validation: {e}")
 
+def run_validation():
+    pubsub.subscribe('update')
+    print(pubsub.get_message(ignore_subscribe_messages=True))
+    pubsub.unsubscribe('update')
+
 if __name__ == "__main__":
-    main()
+    schedule.every(10).seconds.do(run_validation)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

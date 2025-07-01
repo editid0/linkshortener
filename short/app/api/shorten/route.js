@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import moment from 'moment';
 import { Pool } from 'pg';
+const Valkey = require("iovalkey");
 
 function validateURL(url) {
     try {
@@ -46,17 +47,6 @@ function validateSlug(slug) {
     }
     return true;
 }
-function validateExpiry(expiry) {
-    // String in this format: '2025-06-25T15:30:00.000Z'
-    // Check if it meets the format
-    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-    if (!regex.test(expiry)) {
-        return false;
-    }
-    // Check if it is a valid date, using momentjs
-    const date = new moment(expiry);
-    return date.isValid() && date.isAfter(moment());
-}
 
 // Helper function to generate cryptographically secure random string without bias
 function generateSecureRandomString(length) {
@@ -79,7 +69,6 @@ function generateSecureRandomString(length) {
 export async function POST(request) {
     const { userId } = await auth();
     const { url, slug, slug_random, analytics, expiration, expiryTime } = await request.json();
-    console.log(expiration, expiryTime);
 
     // Problem 10: Input size validation
     if (!url || typeof url !== 'string') {
@@ -100,6 +89,10 @@ export async function POST(request) {
         database: process.env.DB_NAME,
         password: process.env.DB_PASSWORD,
         port: 5432,
+    });
+    const valkey = new Valkey({
+        host: process.env.VALKEY_IP || "localhost",
+        port: 6379,
     });
     // Validate URL
     if (!validateURL(url)) {
@@ -211,6 +204,11 @@ export async function POST(request) {
             `;
             await pool.query(analyticsQuery, [analyticsKey, id]);
         }
+        valkey.publish("update", JSON.stringify({
+            type: "add",
+            userId: userId,
+            id: id,
+        }));
         return new Response(JSON.stringify({ shortened_url: `${process.env.NEXT_PUBLIC_SHORT_URL}/${finalSlug || randomSlug}`, id }), { status: 200 });
     } catch (error) {
         console.error("Error inserting URL:", error); return new Response(JSON.stringify({ error: "An error occurred while shortening the URL." }), { status: 500 });
