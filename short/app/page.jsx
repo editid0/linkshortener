@@ -30,6 +30,7 @@ import {
 import { useTheme } from "next-themes";
 import { SignedOut } from "@clerk/nextjs";
 import moment from "moment";
+import posthog from "posthog-js";
 
 export default function Home() {
 	const [url, setUrl] = useState("");
@@ -210,7 +211,6 @@ export default function Home() {
 					onClick={async (e) => {
 						e.preventDefault();
 						if (!isValid) return;
-
 						setIsLoading(true);
 						try {
 							// Make an API call to /api/shorten with the URL, slug, randomSlug, analytics, expiration, expiryDate, and expiryTime
@@ -238,6 +238,9 @@ export default function Home() {
 							} else {
 								setShortenedUrl(data.shortened_url);
 								setResultDialogOpen(true);
+								posthog.capture("url_shortened", {
+									url: url,
+								});
 							}
 						} catch (err) {
 							console.error(err);
@@ -298,6 +301,9 @@ export default function Home() {
 									await navigator.clipboard.writeText(shortenedUrl);
 									setCopied(true);
 									setTimeout(() => setCopied(false), 2000);
+									posthog.capture("url_copied", {
+										shortened_url: shortenedUrl,
+									});
 								} catch (err) {
 									console.error('Failed to copy:', err);
 								}
